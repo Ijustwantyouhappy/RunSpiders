@@ -19,6 +19,3 @@ from RunSpiders.others.for_github import get_popularity_info
 
 __version__ = "1.0.7"
 
-
-checker = Checker()
-checker.main()

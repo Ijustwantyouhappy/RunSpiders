@@ -80,24 +80,20 @@ class PornHub:
 
         init_m3u8_url, hls_quality = None, None
         mp4_url, mp4_quality = None, None
-        if len(details) > 0:
-            try:
-                if details[0]['format'] == 'mp4':
-                    mp4_url = details[0]['videoUrl']
-                    mp4_quality = details[0]['quality']
-                elif details[0]['format'] == 'hls':
-                    init_m3u8_url = details[0]['videoUrl']
-                    hls_quality = details[0]['quality']
-                if len(details) > 1:
-                    if details[1]['format'] == 'mp4':
-                        mp4_url = details[1]['videoUrl']
-                        mp4_quality = details[1]['quality']
-                    elif details[1]['format'] == 'hls':
-                        init_m3u8_url = details[1]['videoUrl']
-                        hls_quality = details[1]['quality']
-            except:
-                print("[fail] unexpected format of mediaDefinitions")
-                return False
+        try:
+            for detail in details:
+                if detail['format'] == 'mp4':
+                    if mp4_url is None:
+                        mp4_url = detail['videoUrl']
+                        mp4_quality = detail['quality']
+                elif detail['format'] == 'hls':
+                    if init_m3u8_url is None:
+                        init_m3u8_url = detail['videoUrl']
+                        hls_quality = detail['quality']
+                        break
+        except:
+            print("[fail] unexpected format of mediaDefinitions")
+            return False
 
         if init_m3u8_url is not None:
             print("init_m3u8_url: {}".format(init_m3u8_url))
@@ -286,14 +282,19 @@ class PornHub:
 if __name__ == "__main__":
     spider = PornHub("F:/movies")
 
-    # play_url_list = [
-    #     'https://www.pornhub.com/view_video.php?viewkey=ph5a83cc59b463f'
-    # ]
-    # spider.download_movies(play_url_list)
-
-    playlists = [
-
+    play_url_list = [
+        'https://www.pornhub.com/view_video.php?viewkey=ph5b58135b8dcae&pkey=102855421'
     ]
-    fail_list = spider.download_playlists(playlists)
-    print(fail_list)
+    spider.download_movies(play_url_list)
+
+    # playlists = [
+    #     'https://www.pornhub.com/playlist/120389851',
+    #     'https://www.pornhub.com/playlist/113966212',
+    #     'https://www.pornhub.com/playlist/106490961',
+    #     'https://www.pornhub.com/playlist/128321902',
+    #     'https://www.pornhub.com/playlist/86085181',
+    #     'https://www.pornhub.com/playlist/115374071'
+    # ]
+    # fail_list = spider.download_playlists(playlists)
+    # print(fail_list)
 
