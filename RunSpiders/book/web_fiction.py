@@ -228,6 +228,7 @@ class WebFictionSpider:
         self.search(book, author, target)
         self.gen_recipes()
         self.gen_ebooks()
+        self.reset()
 
     def download_books(self, book_list):
         """
@@ -238,7 +239,7 @@ class WebFictionSpider:
         for book in book_list:
             print(book)
             self.download(book)
-            self.reset()
+            # self.reset()
             print("-" * 100)
 
 

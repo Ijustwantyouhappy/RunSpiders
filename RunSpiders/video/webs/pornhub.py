@@ -282,19 +282,14 @@ class PornHub:
 if __name__ == "__main__":
     spider = PornHub("F:/movies")
 
-    play_url_list = [
-        'https://www.pornhub.com/view_video.php?viewkey=ph5b58135b8dcae&pkey=102855421'
-    ]
-    spider.download_movies(play_url_list)
-
-    # playlists = [
-    #     'https://www.pornhub.com/playlist/120389851',
-    #     'https://www.pornhub.com/playlist/113966212',
-    #     'https://www.pornhub.com/playlist/106490961',
-    #     'https://www.pornhub.com/playlist/128321902',
-    #     'https://www.pornhub.com/playlist/86085181',
-    #     'https://www.pornhub.com/playlist/115374071'
+    # play_url_list = [
+    #
     # ]
-    # fail_list = spider.download_playlists(playlists)
-    # print(fail_list)
+    # spider.download_movies(play_url_list)
+
+    playlists = [
+
+    ]
+    fail_list = spider.download_playlists(playlists)
+    print(fail_list)
 

@@ -3,9 +3,9 @@ RunSpiders
 
 |Python3|
 
-A python library contains some predefined web crawlers.
+A python library contains many predefined powerful web crawlers.
 
-**Attention**: this package probably can't work properly because of the correlated webs updates.
+**Attention**: this package probably can't work properly because of the correlated webs' updates.
 If this situation happens, just fix it on your own.
 
 Installation
@@ -34,11 +34,14 @@ Please install calibre and add `ebook-convert` to environment variables.
 
 .. code:: python
 
-    from RunSpiders import NovelSpider
+    from RunSpiders import WebFictionSpider
 
-    spider = NovelSpider()
-    spider.download_books(['***', ...])
-    # spider.download_books(['***', ...], style="recipe_first")
+    output = "F:/ebooks"
+    spider = WebFictionSpider(output)
+
+    s.download(book="诛仙")
+    s.download(author="云天空")
+    s.download_books(["秘巫之主", "极品家丁"])
 
 movie
 ::::::::::::::::
@@ -46,7 +49,7 @@ Please install ffmpeg and add it to environment variables.
 
 .. code:: python
 
-    from RunSpiders import M3U8Spider
+    from RunSpiders.video.base.m3u8 import M3U8Spider
 
     spider = M3U8Spider(output="F\movies")
     spider.download_movies([(m3u8_url, file_name), ...])
