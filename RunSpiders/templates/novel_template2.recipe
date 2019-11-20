@@ -1,0 +1,41 @@
+# -*- coding: utf-8 -*-
+
+"""
+该网站先是展示部分最新章节，然后才开始依顺序展示正文章节
+"""
+
+from calibre.web.feeds.recipes import BasicNewsRecipe
+
+
+class Book(BasicNewsRecipe):
+    title = '{{title}}'
+    cover_url = '{{cover_url}}'
+    #
+    remove_javascript = True
+    use_embedded_content = False
+    no_stylesheets = True
+    max_articles_per_feed = 10000
+    keep_only_tags = [dict(name='div', attrs={'id': 'content'})]
+
+    def parse_index(self):
+        soup = self.index_to_soup('{{index_url}}')
+        div = soup.find('div', {'id': 'list'})
+
+        articles = []
+        for link in div.findAll('a'):
+            title = self.tag_to_string(link).strip()
+            url = '{{web_url}}' + link['href']
+            a = {'title': title, 'url': url}
+            articles.append(a)
+
+        # remove duplicates
+        articles1 = []
+        s = set()
+        for d in articles[::-1]:
+            if d['url'] not in s:
+                s.add(d['url'])
+                articles1.append(d)
+
+        book = [(self.title, articles1[::-1])]
+
+        return book

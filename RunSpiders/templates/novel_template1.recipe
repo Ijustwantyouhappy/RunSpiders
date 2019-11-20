@@ -1,0 +1,30 @@
+# -*- coding: utf-8 -*-
+
+
+from calibre.web.feeds.recipes import BasicNewsRecipe
+
+
+class Book(BasicNewsRecipe):
+    title = '{{title}}'
+    cover_url = '{{cover_url}}'
+    #
+    remove_javascript = True
+    use_embedded_content = False
+    no_stylesheets = True
+    max_articles_per_feed = 10000
+    keep_only_tags = [dict(name='div', attrs={'id': 'content'})]
+
+    def parse_index(self):
+        soup = self.index_to_soup('{{index_url}}')
+        div = soup.find('div', {'id': 'list'})
+
+        articles = []
+        for link in div.findAll('a'):
+            title = self.tag_to_string(link).strip()
+            url = '{{web_url}}' + link['href']
+            a = {'title': title, 'url': url}
+            articles.append(a)
+
+        book = [(self.title, articles)]
+
+        return book
