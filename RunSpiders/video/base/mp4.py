@@ -22,6 +22,11 @@ class Downloader:
         self.total_size = None
         self.process = 0  # 进度条进度
 
+    def reset(self):
+        self.bar = None
+        self.total_size = None
+        self.process = 0  # 进度条进度
+
     def schedule(self, a, b, c):
         if self.total_size is None:
             total_size = c / 1024 ** 2
