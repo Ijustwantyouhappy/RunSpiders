@@ -119,7 +119,7 @@ def delete_path(file_path: str) -> None:
 class Checker:
     """检查环境是否配置成功"""
     def __init__(self):
-        self.system = system()
+        self.system = system()  # Windows/Darwin
 
     def main(self):
         table = PrettyTable()
@@ -127,7 +127,7 @@ class Checker:
 
         table.add_row(['calibre', 'ebook-convert --version', self.check_calibre()])
         table.add_row(['ffmpeg', 'ffmpeg -version', self.check_ffmpeg()])
-        table.add_row(['PornHub', 'prng pornhub.com', self.check_website_connection('pornhub.com')])
+        table.add_row(['PornHub', 'ping pornhub.com', self.check_website_connection('pornhub.com')])
 
         table.align = 'l'
         print(table)
@@ -140,7 +140,7 @@ class Checker:
             2. `ebook-convert`命令添加至环境变量
         :return:
         """
-        if self.system == 'Windows':
+        if self.system in {'Windows', 'Darwin'}:
             test = os.popen("ebook-convert --version")
             if 'calibre' not in test.read():
                 # print("please install calibre and add ebook-convert to environment virables")
@@ -148,8 +148,6 @@ class Checker:
             else:
                 # print('calibre installed')
                 return True
-        elif self.system == 'Darwin':  # for mac
-            pass  # todo 待开发
 
     def check_ffmpeg(self) -> bool:
         """
@@ -158,7 +156,7 @@ class Checker:
             1. 安装ffmpeg
             2. `ffmpeg`命令添加至环境变量
         """
-        if self.system == 'Windows':
+        if self.system in {'Windows', 'Darwin'}:
             test = os.popen("ffmpeg -version")
             if 'ffmpeg version' in test.read():
                 # print('ffmpeg installed')
@@ -166,10 +164,8 @@ class Checker:
             else:
                 # print('please install ffmpeg and add it to environment virables')
                 return False
-        elif self.system == 'Darwin':  # for mac
-            pass  # todo 待开发
 
-    def check_website_connection(self, url, n=5) -> bool:
+    def check_website_connection(self, url, n=4) -> bool:
         """
         通过ping的方式检查是否能访问特定网址，主要检查能否翻墙。
         :param url:
@@ -181,6 +177,12 @@ class Checker:
             cont = test.read()
             # print(cont)
             num = int(re.findall(r'(\d+)% .*', cont)[0])
+            return num != 100
+        elif self.system == 'Darwin':
+            test = os.popen("ping {} -c {} -i 2".format(url, n))
+            cont = test.read()
+            # print(cont)
+            num = float(re.findall(r'([\d\.]+)% .*', cont)[0])
             return num != 100
 
 

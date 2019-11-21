@@ -9,6 +9,7 @@ todo
     1. crawl cover image seperately
     2. ebook-convert 在python console和Run中运行时输出信息会乱码，只有在命令行调用时才能正常显示
     3. ebook-convert 爬虫太慢，考虑自写，寻找生成mobi格式的工具
+    4. use python package `python-fire` automatically generating command line interfaces
 """
 
 from RunSpiders.utils import *
@@ -16,6 +17,7 @@ from RunSpiders.templates import _ENV
 
 import sys
 import requests
+import re
 from bs4 import BeautifulSoup
 import os
 import warnings;warnings.filterwarnings("ignore")
@@ -61,6 +63,7 @@ class WebFictionSpider:
             for spider in self.spiders_list:
                 print("search {}, {}".format(spider.name, spider.url))
                 res_list = spider.search(book, author)
+                print('-' * 100)
                 if len(res_list) > 0:
                     self.spider_books_list.append((spider, res_list[:1]))
                     return True
@@ -68,7 +71,7 @@ class WebFictionSpider:
             for spider in self.spiders_list:
                 print("search {}, {}".format(spider.name, spider.url))
                 res_list = spider.search(book, author)
-                print("\n")
+                print("-" * 100)
                 if len(res_list) > 0:
                     self.spider_books_list.append((spider, res_list))
             if len(self.spider_books_list) > 0:
@@ -229,6 +232,7 @@ class WebFictionSpider:
         self.gen_recipes()
         self.gen_ebooks()
         self.reset()
+        print('\n\n')
 
     def download_books(self, book_list):
         """
@@ -237,10 +241,9 @@ class WebFictionSpider:
         :return:
         """
         for book in book_list:
-            print(book)
-            self.download(book)
-            # self.reset()
+            print("title: {}".format(book).center(100))
             print("-" * 100)
+            self.download(book)
 
 
 class SubSpider:
@@ -286,37 +289,42 @@ class SubSpider1:
 
     def search(self, book=None, author=None):
         """
-        该网站仅允许一个关键词，所以当书名和作者名均传入时以书名为搜索关键词，但两者都会作为对搜索结果的筛选条件；
-        该网页的查询结果会分页展示
+        1. 该网站仅允许一个关键词，所以当书名和作者名均传入时以书名为搜索关键词，但两者都会作为对搜索结果的筛选条件；
+        2. 该网页的查询结果会分页展示
         :param book:
         :param author:
         :return: [(book, author, index_url, cover_url), ...]
         """
         keyword = book if book is not None else author
 
-        # search
-        def _search_page_url(url):
-            flag, req = request_url(url, timeout=10, retry=1)
-            if flag:
-                cont = req.content
-                soup = BeautifulSoup(cont, "lxml")
-                books = soup.find_all('div', attrs={'class': "result-item result-game-item"})
-                return books
-            else:
-                return []
-
-        #
-        books_list = []
+        # 第一页
         url = self.url + "/search.php?keyword={}".format(keyword)
-        res_list = _search_page_url(url)
-        num = 1
-        while len(res_list) > 0:
-            print("page {} parsed, {} book(s) found".format(num, len(res_list)))
-            books_list += res_list
-            num += 1
-            res_list = _search_page_url(url + "&page={}".format(num))
-        print('search {} page(s), find {} book(s)'.format(num, len(books_list)))
-        if len(books_list) == 0:
+        flag, req = request_url(url, timeout=10, retry=1)
+        if flag:
+            soup = BeautifulSoup(req.content, "lxml")
+            if '末页' in req.text:  # 搜索结果不止一页
+                total_num = int(re.findall('page=(\d+)', soup.find('a', attrs={'title': '末页'})['href'])[0])
+            else:
+                total_num = 1
+            books = soup.find_all('div', attrs={'class': "result-item result-game-item"})
+        else:
+            books = []
+            total_num = 0
+        print("page 1 parsed, {} book(s) found".format(len(books)))
+        # 后续页
+        for page in range(2, total_num + 1):
+            new_url = url + "&page={}".format(page)
+            flag, req = request_url(new_url, timeout=10, retry=1)
+            if flag:
+                soup = BeautifulSoup(req.content, "lxml")
+                new_books = soup.find_all('div', attrs={'class': "result-item result-game-item"})
+                books += new_books
+                print("page {} parsed, {} book(s) found".format(page, len(new_books)))
+            else:
+                print("[fail] page {} parsed".format(page))
+        #
+        print('search {} page(s), find {} book(s)'.format(total_num, len(books)))
+        if len(books) == 0:
             return []
 
         # parse
@@ -342,7 +350,7 @@ class SubSpider1:
 
         #
         details_list = []
-        for soup in books_list:
+        for soup in books:
             tmp = _parse_details(soup)
             if tmp is not None:
                 book0, author0, _, _ = tmp
@@ -491,19 +499,15 @@ class SubSpider2:
         return recipe
 
 
-# if __name__ == "__main__":
-#     output = "F:/ebooks"
-#     s = WebFictionSpider(output=output)
-#     # ebooks = [os.path.join(output, x) for x in os.listdir(output) if x.endswith('recipe')]
-#     # s.recipes_list = ebooks
-#     # s.gen_ebooks()
-#     # s.download("诛仙")
-#     # s.download(author="云天空")
-#     s.download_books(["秘巫之主"])
+if __name__ == "__main__":
+    output = "novels"
+    s = WebFictionSpider(output=output)
+    s.download(book="诛仙")
+    # s.download(author="云天空")
+    s.download_books(["秘巫之主", "极品家丁"])
 
 
 # if __name__ == "__main__":
-#     # todo use python package `python-fire` automatically generating command line interfaces
 #     """
 #     -h, --help                                      Show help
 #     -b, --book <book>                               Download book

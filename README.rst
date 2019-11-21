@@ -25,6 +25,17 @@ Requirements
     checker = Checker()
     checker.main()
 
+1. [calibre](https://calibre-ebook.com/download) for converting ebook
+[Mac安装Calibre电子书应用](https://blog.csdn.net/u012955829/article/details/99240602)
+
+.. code::bash
+
+    vim ~/.bash_profile
+    export EBOOK_PATH=/Applications/calibre.app/Contents/MacOS
+    export PATH=$PATH:$EBOOK_PATH
+
+2. [MAC 系统安装FFmpeg](https://www.jianshu.com/p/73441acf7815)
+
 Examples
 >>>>>>>>>>>>>
 
@@ -56,3 +67,11 @@ Please install ffmpeg and add it to environment variables.
 
 
 .. |Python3| image:: https://img.shields.io/badge/python-3-red.svg
+
+
+FAQ
+>>>>>>>>>>>>>
+IPython报错
+::::::::::::::::
+- 问题：ImportError: cannot import name 'generator_to_async_generator'
+- 解决方案：``pip install ipython prompt_toolkit --upgrade``
