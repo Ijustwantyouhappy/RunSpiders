@@ -121,6 +121,7 @@ class PornHub:
                 print("video_quality: {}P".format(mp4_quality))
                 if self.mp4_switch:
                     flag = self.mp4_downloader.download(mp4_url, file_name)
+                    self.mp4_downloader.reset()
                     return flag
                 else:
                     print("[fail] mp4' switch has been turned off.")
@@ -164,6 +165,7 @@ class PornHub:
         异步加载:
             method1. solved by selenium, 有时候不起作用。[deprecated]
             method2. F12 - XHR，找到了请求的接口。
+        todo 播单页面内有视频总数的信息，但好像不一定准。
         :param playlist_url: 播放列表地址
         :return: 视频播放地址列表
         """
@@ -268,7 +270,7 @@ class PornHub:
         :return:
         """
         playlists = set(playlists)
-        print("playlists: {}".format(len(playlists)))
+        print("playlists: {}\n".format(len(playlists)))
         videos = []
         for playlist_url in playlists:
             new_videos = self.fetch_video_urls_from_playlist(playlist_url)
@@ -288,7 +290,6 @@ if __name__ == "__main__":
     # spider.download_movies(play_url_list)
 
     playlists = [
-
     ]
     fail_list = spider.download_playlists(playlists)
     print(fail_list)
