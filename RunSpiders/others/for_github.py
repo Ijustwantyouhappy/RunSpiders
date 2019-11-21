@@ -32,7 +32,7 @@ def get_popularity_info(project_github_url):
     #
     try:
         introduction = str(soup.find('div', attrs={'class', 'f4'}))
-        watch = re.search('(\d+) users are watching this repository', cont).groups()[0]
+        watch = re.search('(\d+) users* (are|is) watching this repository', cont).groups()[0]
         star = re.search('(\d+) users starred this repository', cont).groups()[0]
         fork = re.search('(\d+) users forked this repository', cont).groups()[0]
     except:

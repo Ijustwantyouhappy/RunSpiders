@@ -9,13 +9,13 @@ setup(
     version=re.findall('__version__\s*=\s*"(.*?)"', open("RunSpiders/__init__.py", "r", encoding="utf-8").read())[0],
     author='Ijustwantyouhappy',
     author_email='',
-    description="Some predefined web crawlers",
+    description="A python library contains many powerful web crawlers.",
     long_description=open('README.rst').read(),  # todo write README seriously
     # long_description_content_type="text/markdown",
     url='',
     # maintainer='',
     # maintainer_email='',
-    license='MIT',  # todo write LICENSE seriously
+    license='MIT',
     packages=find_packages(),
     # package_data = {
     #     '': ['*.recipe', '*.html']
@@ -38,6 +38,7 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Operating System :: Windows',
+        'Operating System :: MacOS',
         "Topic :: Software Development :: Libraries :: Python Modules",
         'Programming Language :: Python :: 3'
     ],
