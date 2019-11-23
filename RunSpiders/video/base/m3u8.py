@@ -87,7 +87,7 @@ class M3U8Spider:
 
     def get_ts_urls_and_key(self, m3u8_url, timeout=10):
         """
-
+        todo move timeout to __init__
         :param m3u8_url: url of detailed m3u8 file
         :return: bool
         """
@@ -238,7 +238,17 @@ class M3U8Spider:
     def download_movie(self, m3u8_url, file_name="unknown", concat=True, delete=True):
         t1 = time.time()
         file_name = re.sub('[/:*?"<>|.]', '', file_name).replace('\\', '')  # valid name for folder
-        self.file_name = file_name + '_' + str(randint(0, 1000000))  # avoid duplicates
+
+        # solve error caused by encoding <gbk/utf-8> todo find more essential solution
+        new_file_name = ""
+        for c in file_name:
+            try:
+                c1, c2 = c.encode(), c.encode('gbk')
+                new_file_name += c
+            except:
+                pass
+
+        self.file_name = new_file_name + '_' + str(randint(0, 1000000))  # avoid duplicates
         if self.get_ts_urls_and_key(m3u8_url):
             self.is_downloading = True
             g1 = gevent.spawn(self._update_bar)
@@ -257,6 +267,37 @@ class M3U8Spider:
         for m3u8_url, file_name in url_name_list:
             self.download_movie(m3u8_url, file_name)
             self.reset()
+
+
+def batch_rename(movies_path):
+    """
+    在之前爬取及合并ts文件时，为防止重名，对文件名添加了随机数后缀，该函数用于批量重命名，删除该随机数后缀。
+    注意：mp4文件似乎大小写不敏感，大小写不一样的字符串也会视为重名。
+    :param movies_path:
+    :return:
+    """
+    if os.path.exists(movies_path):
+        os.chdir(movies_path)
+        files = set(os.listdir())
+        success, fail = set(), files.copy()
+        for file in files:
+            new_name = re.sub(r'_\d+.mp4', '.mp4', file)
+            if new_name == file:
+                fail.remove(file)
+                success.add(new_name)
+                continue
+            if new_name not in success and new_name not in fail:
+                try:
+                    os.rename(file, new_name)
+                except:
+                    pass
+                else:
+                    fail.remove(file)
+                    success.add(new_name)
+        print("total: {}, success: {}, fail: {}".format(len(files), len(success), len(fail)))
+        return fail
+    else:
+        print("path doesn't exist: {}".format(movies_path))
 
 
 # if __name__ == '__main__':

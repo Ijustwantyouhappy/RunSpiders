@@ -184,6 +184,3 @@ class Checker:
             # print(cont)
             num = float(re.findall(r'([\d\.]+)% .*', cont)[0])
             return num != 100
-
-
-

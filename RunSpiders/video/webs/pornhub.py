@@ -10,6 +10,8 @@ References:
 
 todo 寻找多线程下载mp4的方式
 todo 建立错误代码表
+todo 添加vps相关代码
+todo 更换代理，防止被封 difficult
 """
 
 
@@ -59,6 +61,7 @@ class PornHub:
             s = text[:pos].strip()
             var_name = re.findall('var (flashvars_\d+) =', s)[0]
         except:
+            # 有时候频繁爬取可能会导致网站返回的内容不对，不是脚本的问题，重新爬取即可
             print("[fail] can't parse play_url's content")
             return False
 
@@ -136,7 +139,7 @@ class PornHub:
         :param play_url_list:
         :return: fail_url_list
         """
-        play_url_set = set(play_url_list)
+        play_url_set = set(re.sub(r'&pkey=\d+', '', url) for url in play_url_list)
         total_num = len(play_url_set)
         print("videos: {}".format(total_num))
         print("-" * 100)
@@ -284,13 +287,12 @@ class PornHub:
 if __name__ == "__main__":
     spider = PornHub("F:/movies")
 
-    # play_url_list = [
-    #
-    # ]
-    # spider.download_movies(play_url_list)
+    # play_url_list = []
+    # fail_list = spider.download_movies(play_url_list)
+    # print(fail_list)
 
-    playlists = [
-    ]
-    fail_list = spider.download_playlists(playlists)
-    print(fail_list)
+    # playlists = []
+    # fail_list = spider.download_playlists(playlists)
+    # print(fail_list)
+
 
