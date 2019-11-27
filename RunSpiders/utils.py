@@ -90,7 +90,8 @@ def get_http_session(pool_connections, pool_maxsize, max_retries):
     # todo rewrite to make parameters more flexible
     session = requests.Session()
     adapter = requests.adapters.HTTPAdapter(pool_connections=pool_connections,
-                                            pool_maxsize=pool_maxsize, max_retries=max_retries)
+                                            pool_maxsize=pool_maxsize,
+                                            max_retries=max_retries)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     return session

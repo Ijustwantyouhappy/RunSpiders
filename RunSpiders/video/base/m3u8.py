@@ -52,9 +52,10 @@ class M3U8Spider:
         :param pool_size:
         :param retry:
         """
-        self.pool = Pool(pool_size)
+        self.pool_size = pool_size
         self.retry = retry
-        self.session = get_http_session(pool_size, pool_size, retry)
+        self.pool = Pool(self.pool_size)
+        self.session = get_http_session(self.pool_size, self.pool_size, self.retry)
         #
         self.is_downloading = False  # is still downloading
         self.ts_urls = None  # [ts_url, ...]
@@ -89,6 +90,7 @@ class M3U8Spider:
         """
         todo move timeout to __init__
         :param m3u8_url: url of detailed m3u8 file
+        :param timeout:
         :return: bool
         """
         # get m3u8
