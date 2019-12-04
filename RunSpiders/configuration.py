@@ -14,3 +14,5 @@ proxies = {
     'http': 'socks://localhost:1081',
     'https': 'socks://localhost:1081'
 }
+
+

@@ -15,6 +15,7 @@
 import re
 import requests
 import requests.adapters
+from selenium import webdriver
 import time
 import os
 import stat
@@ -95,6 +96,19 @@ def get_http_session(pool_connections, pool_maxsize, max_retries):
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     return session
+
+
+def get_cookie_by_selenium(url):
+    # todo 如何自动获取cookie，selenium太慢
+    option = webdriver.ChromeOptions()
+    option.add_argument('headless')
+    driver = webdriver.Chrome(options=option)
+    # driver.set_page_load_timeout(1)
+    driver.get(url)
+    cookie = ';'.join(["{}={}".format(item["name"], item["value"]) for item in driver.get_cookies()])
+    driver.close()
+
+    return cookie
 
 
 def delete_path(file_path: str) -> None:
