@@ -5,6 +5,10 @@
 # @Software : PyCharm
 
 """
+references:
+    1. [API documentation for recipes](https://manual.calibre-ebook.com/news_recipe.html#calibre.web.feeds.news.BasicNewsRecipe)
+    2. [ebook-convert](https://manual.calibre-ebook.com/generated/en/ebook-convert.html)
+
 todo
     1. crawl cover image seperately
     2. ebook-convert 在python console和Run中运行时输出信息会乱码，只有在命令行调用时才能正常显示
@@ -26,14 +30,15 @@ import warnings;warnings.filterwarnings("ignore")
 
 class WebFictionSpider:
 
-    def __init__(self, output="ebooks/"):
+    def __init__(self, output="ebooks/", simultaneous_downloads=30):
         """
 
         :param output: 电子书文件存放路径
+        :param simultaneous_downloads: 多线程下载的线程数
         """
         self.spiders_list = [
-            SubSpider1(),
-            SubSpider2()
+            SubSpider1(simultaneous_downloads),
+            SubSpider2(simultaneous_downloads)
         ]
         self.book_folder = output
         if not os.path.exists(output):
@@ -133,67 +138,6 @@ class WebFictionSpider:
         except Exception as e:
             print("convert ebook failed: {}".format(e))
 
-    # def recipe_to_ebook_old(self, recipe, ebook_format='mobi'):
-    #     """
-    #     (deprecated)
-    #     convert recipe to ebook, save in self.book_folder
-    #         1. use ebook-convert.exe to get ebook in epub format from recipe file
-    #         2. use python module `ebooklib` to edit title and author of epub ebook
-    #         3. use ebook-convert.exe to convert ebook's format
-    #     :param recipe: e.g. ebooks/1.recipe
-    #     :param ebook_format: epub, mobi, ... (kindle usually use mobi)
-    #     :return:
-    #     :notes:
-    #         1. make sure you have installed calibre and add `ebook-convert` to environment variables
-    #     """
-    #     # if not check_calibre_installed():  # test ebook-convert command
-    #     #     return
-    #     if not os.path.exists(recipe):
-    #         print("can't find recipe: {}".format(recipe))
-    #         return
-    #
-    #     recipe_name = os.path.basename(recipe)  # 书名_作者.recipe
-    #     if not recipe_name.endswith('.recipe'):
-    #         print("invalid recipe name: {}".format(recipe_name))
-    #         return
-    #     name = recipe_name.replace('.recipe', '')
-    #     title, author = name.split('_')
-    #
-    #     # check exists
-    #     target_ebook = os.path.join(self.book_folder, name + '.' + ebook_format)
-    #     if os.path.exists(target_ebook):
-    #         print("{} already exists in folder {}".format(ebook_name, self.book_folder))
-    #         return
-    #
-    #     # .recipe -> .epub
-    #     ebook_name = name + '.epub'
-    #     epub_ebook = os.path.join(self.book_folder, ebook_name)
-    #     if not os.path.exists(epub_ebook):
-    #         print("generate {}".format(ebook_name))
-    #         try:
-    #             os.system('ebook-convert "{}" "{}"'.format(recipe, epub_ebook))
-    #         except Exception as e:
-    #             print("convert ebook failed: {}".format(e))
-    #
-    #     print("edit metadata")
-    #     book = epub.read_epub(epub_ebook)
-    #     book.set_unique_metadata('DC', 'title', title)
-    #     book.title = title
-    #     book.set_unique_metadata('DC', 'creator', author)
-    #     #
-    #     epub.write_epub(epub_ebook, book, {})
-    #
-    #     # .epub -> .mobi
-    #     if ebook_format == 'epub':
-    #         return
-    #     else:
-    #         print("convert format")
-    #         try:
-    #             os.system('ebook-convert "{}" "{}"'.format(epub_ebook, target_ebook))
-    #         except Exception as e:
-    #             print("convert ebook failed: {}".format(e))
-    #         os.remove(epub_ebook)
-
     def gen_ebooks(self, delete_recipes=True):
         """
         convert recipes to ebooks
@@ -282,10 +226,11 @@ class SubSpider:
 
 class SubSpider1:
 
-    def __init__(self):
+    def __init__(self, simultaneous_downloads=30):
         self.url = 'https://www.xbiquge6.com'
         self.name = '新笔趣阁'
         self.template = "novel_template1.recipe"
+        self.simultaneous_downloads = simultaneous_downloads
 
     def search(self, book=None, author=None):
         """
@@ -388,7 +333,8 @@ class SubSpider1:
             'title': book,
             'cover_url': cover_url,
             'index_url': index_url,
-            'web_url': self.url
+            'web_url': self.url,
+            'simultaneous_downloads': self.simultaneous_downloads
         }
         template = _ENV.get_template(self.template)
         cont = template.render(**details_dict)
@@ -402,10 +348,11 @@ class SubSpider1:
 
 class SubSpider2:
 
-    def __init__(self):
+    def __init__(self, simultaneous_downloads=30):
         self.url = 'https://www.biquge.cc'
         self.name = '笔趣阁'
         self.template = "novel_template2.recipe"
+        self.simultaneous_downloads = simultaneous_downloads
 
     def search(self, book=None, author=None):
         """
@@ -487,7 +434,8 @@ class SubSpider2:
             'title': book,
             'cover_url': cover_url,
             'index_url': index_url,
-            'web_url': index_url
+            'web_url': index_url,
+            'simultaneous_downloads': self.simultaneous_downloads
         }
         template = _ENV.get_template(self.template)
         cont = template.render(**details_dict)
@@ -502,10 +450,9 @@ class SubSpider2:
 if __name__ == "__main__":
     output = "novels"
     s = WebFictionSpider(output=output)
-    s.download(book="诛仙")
-    # s.download(author="云天空")
-    s.download_books(["秘巫之主", "极品家丁"])
-
+    # s.download(book="诛仙")
+    # s.download(author="石章鱼")
+    s.download_books(['江上美色', '锦衣王后'])
 
 # if __name__ == "__main__":
 #     """

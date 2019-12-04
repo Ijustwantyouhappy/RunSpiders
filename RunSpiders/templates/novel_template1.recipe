@@ -12,6 +12,7 @@ class Book(BasicNewsRecipe):
     use_embedded_content = False
     no_stylesheets = True
     max_articles_per_feed = 10000
+    simultaneous_downloads = {{simultaneous_downloads}}
     keep_only_tags = [dict(name='div', attrs={'id': 'content'})]
 
     def parse_index(self):
