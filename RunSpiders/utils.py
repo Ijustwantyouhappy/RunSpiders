@@ -115,6 +115,7 @@ def delete_path(file_path: str) -> None:
     """
     Force delete file or dir(contains all subdirs and files).
     Ignore file's attributes like 'read-only'.
+    This function is copied from package `RunToolkit`.
     """
     if os.path.exists(file_path):
         if os.path.isfile(file_path):  # file

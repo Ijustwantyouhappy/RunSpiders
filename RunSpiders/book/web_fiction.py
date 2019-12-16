@@ -10,10 +10,11 @@ references:
     2. [ebook-convert](https://manual.calibre-ebook.com/generated/en/ebook-convert.html)
 
 todo
-    1. crawl cover image seperately
-    2. ebook-convert 在python console和Run中运行时输出信息会乱码，只有在命令行调用时才能正常显示
-    3. ebook-convert 爬虫太慢，考虑自写，寻找生成mobi格式的工具
+    1. ebook-convert 在python console和Run中运行时输出信息会乱码，只有在命令行调用时才能正常显示
+    2. ebook-convert 爬虫太慢，考虑自写，寻找生成mobi格式的工具
     4. use python package `python-fire` automatically generating command line interfaces
+    5. 分卷 volume 卷名
+    6. 分析每本书下载情况，缺失章节补全等
 """
 
 from RunSpiders.utils import *
@@ -25,22 +26,26 @@ from urllib.parse import urljoin
 import re
 from bs4 import BeautifulSoup
 import os
-import warnings;warnings.filterwarnings("ignore")
+import warnings; warnings.filterwarnings("ignore")
 # from ebooklib import epub
 
 
 class WebFictionSpider:
 
-    def __init__(self, output="ebooks/", simultaneous_downloads=30):
+    def __init__(self, output="ebooks/", simultaneous_downloads=30, sub_spider_list=None):
         """
 
         :param output: 电子书文件存放路径
         :param simultaneous_downloads: 多线程下载的线程数
+        :param sub_spider_list: 指定网站爬虫类. e.g. [SubSpider1, SubSpider2]
         """
-        self.spiders_list = [
-            SubSpider1(simultaneous_downloads),
-            SubSpider2(simultaneous_downloads)
-        ]  # todo 检验网站是否可访问
+        if sub_spider_list is None:
+            self.spiders_list = [
+                SubSpider1(simultaneous_downloads),
+                SubSpider2(simultaneous_downloads)
+            ]  # todo 检验网站是否可访问
+        else:
+            self.spiders_list = [spider(simultaneous_downloads) for spider in sub_spider_list]
         self.book_folder = output
         if not os.path.exists(output):
             os.makedirs(output)
@@ -87,9 +92,10 @@ class WebFictionSpider:
 
         return False
 
-    def gen_recipes(self):
+    def gen_recipes(self, exclude_books=None):
         """
 
+        :param exclude_books: 指定books不下载
         :return: bool
         """
         if len(self.spider_books_list) == 0:
@@ -97,6 +103,8 @@ class WebFictionSpider:
 
         for spider, tmp in self.spider_books_list:
             for sub_tmp in tmp:
+                if exclude_books is not None and sub_tmp[0] in exclude_books:
+                    continue
                 recipe = spider.gen_recipe(*sub_tmp, self.book_folder)
                 if recipe is not None:
                     self.recipes_list.append(recipe)
@@ -158,11 +166,12 @@ class WebFictionSpider:
             if delete_recipes:
                 os.remove(recipe)
 
-    def download(self, book=None, author=None):
+    def download(self, book=None, author=None, exclude_books=None):
         """
         下载指定书籍或者指定作者的所有书
         :param book: 如果传入书名，则只下载该书
         :param author: 如果传入作者名，则下载该作者能搜索到的所有不重名书籍
+        :param exclude_books: 当指定author想要下载其所有作品时，可传入该参数指定books不下载
         :return:
         """
         if book is not None:
@@ -174,7 +183,7 @@ class WebFictionSpider:
             return
 
         self.search(book, author, target)
-        self.gen_recipes()
+        self.gen_recipes(exclude_books)
         self.gen_ebooks()
         self.reset()
         print('\n\n')
@@ -189,6 +198,78 @@ class WebFictionSpider:
             print("title: {}".format(book).center(100))
             print("-" * 100)
             self.download(book)
+
+
+class CoverSpider:
+
+    def search(self, book, author=None):
+        web_funcs = [
+            self.search_qidian,
+            self.search_zongheng
+        ]
+        for func in web_funcs:
+            img_url = func(book, author)
+            if img_url is not '':
+                return img_url
+
+        return ''
+
+    def download(self, url, filename='cover.jpg'):
+        with open(filename, 'wb') as file:
+            file.write(requests.get(url).content)
+
+    def search_qidian(self, book, author=None):
+        web_name = '起点中文网'
+        web_url = 'https://www.qidian.com'
+        search_url = '{}/search?kw={}'.format(web_url, book)
+        #
+        flag, req = request_url(search_url)
+        if not flag:
+            print("book: {}, author: {}. requests {} failed".format(book, author, web_name))
+            return ''
+        try:
+            soup = BeautifulSoup(req.content, 'lxml')
+            div = soup.find('div', attrs={'class': 'book-img-text'})
+            lis = div.find_all('li')
+            for li in lis:
+                book0 = li.find('h4').string.strip()
+                if book0 == book:
+                    if author is not None:
+                        author0 = li.find('p', {'class': 'author'}).find('a').string.strip()
+                        if author != author0:
+                            continue
+                    src = 'http:' + re.sub('/150$', '', li.find('img')['src'])  # todo
+                    return src
+        except:
+            print("book: {}, author: {}. parse {}'s page failed".format(book, author, web_name))
+
+        return ''
+
+    def search_zongheng(self, book, author=None):
+        web_name = '纵横中文网'
+        web_url = 'http://www.zongheng.com/'
+        search_url = 'http://search.zongheng.com/s?keyword={}'.format(book)
+        #
+        flag, req = request_url(search_url)
+        if not flag:
+            print("book: {}, author: {}. requests {} failed".format(book, author, web_name))
+            return ''
+        try:
+            soup = BeautifulSoup(req.content, 'lxml')
+            divs = soup.find_all('div', attrs={'class': 'search-result-list clearfix'})
+            for div in divs:
+                book0 = div.find('h2', attrs={'class': 'tit'}).find('a').text.strip()
+                if book0 == book:
+                    if author is not None:
+                        author0 = div.find('div', attrs={'class': 'bookinfo'}).find('a').string.strip()
+                        if author != author0:
+                            continue
+                    src = div.find('div', attrs={'class': 'imgbox fl se-result-book'}).find('img')['src']
+                    return src
+        except:
+            print("book: {}, author: {}. parse {}'s page failed".format(book, author, web_name))
+
+        return ''
 
 
 class SubSpider:
@@ -232,6 +313,7 @@ class SubSpider1:
         self.name = '新笔趣阁'
         self.template = "novel_template1.recipe"
         self.simultaneous_downloads = simultaneous_downloads
+        self.cover_spider = CoverSpider()
 
     def search(self, book=None, author=None):
         """
@@ -292,18 +374,22 @@ class SubSpider1:
             except:
                 return None
 
-            return book, author, index_url, img_url
+            return [book, author, index_url, img_url]
 
         #
         details_list = []
         for soup in books:
             tmp = _parse_details(soup)
             if tmp is not None:
-                book0, author0, _, _ = tmp
+                book0, author0, _, img_url = tmp
                 if book is not None and book != book0:
                     continue
                 if author is not None and author != author0:
                     continue
+                # search cover image's url
+                img_url = self.cover_spider.search(book0, author0)
+                if img_url is not '':
+                    tmp[-1] = img_url
                 details_list.append(tmp)
         print('after parsing and filtering, {} book(s) left'.format(len(details_list)))
 
@@ -354,11 +440,13 @@ class SubSpider2:
         self.name = '笔趣阁'
         self.template = "novel_template2.recipe"
         self.simultaneous_downloads = simultaneous_downloads
+        self.cover_spider = CoverSpider()
 
     def search(self, book=None, author=None):
         """
         该网站的搜索是通过一个接口以参数siteid传入站点名进行请求，允许多个关键词，可以同时筛选书名和作者名；
-        该网页的查询结果只会有一页
+        有不少网站都是通过这个接口搜书的；
+        该网页的查询结果只会有一页。
         :param book:
         :param author:
         :return: [(book, author, index_url, img_url), ...]
@@ -393,7 +481,7 @@ class SubSpider2:
             except:
                 return None
 
-            return book, author, index_url, img_url
+            return [book, author, index_url, img_url]
 
         #
         details_list = []
@@ -405,6 +493,10 @@ class SubSpider2:
                     continue
                 if author is not None and author != author0:
                     continue
+                # search cover image's url
+                img_url = self.cover_spider.search(book0, author0)
+                if img_url is not '':
+                    tmp[-1] = img_url
                 details_list.append(tmp)
         print('after parsing and filtering, {} book(s) left'.format(len(details_list)))
 
@@ -449,7 +541,7 @@ class SubSpider2:
 
 
 class SubSpider3:
-    # todo 该网站不稳定
+    # [deprecated] 该网站反爬虫策略太严格，需要带cookie访问，访问速度太快还会被封
     def __init__(self, simultaneous_downloads=30):
         self.url = 'https://www.kuaiyankanshu.net/'
         self.name = '快眼看书'
@@ -565,12 +657,18 @@ class SubSpider3:
         return recipe
 
 
-# if __name__ == "__main__":
-#     output = "novels"
-#     s = WebFictionSpider(output=output)
-#     # s.download(book="诛仙")
-#     # s.download(author="石章鱼")
-#     s.download_books(['江上美色', '锦衣王后'])
+if __name__ == "__main__":
+    output = "ebooks"
+
+    s = WebFictionSpider(output=output)
+    # s.download(book="秘巫之主")
+    # s.download(author="虾写")
+    # s.download(author='傲无常', exclude_books=['国产英雄'])
+    # s.download_books(['诡案追凶', '日出亚里斯'])
+
+    # 指定网站爬虫
+    s = WebFictionSpider(output=output, sub_spider_list=[SubSpider2])
+    s.download(book='老婆爱上我')
 
 # if __name__ == "__main__":
 #     """
