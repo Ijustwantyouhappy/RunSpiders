@@ -15,6 +15,10 @@ todo
     4. use python package `python-fire` automatically generating command line interfaces
     5. 分卷 volume 卷名
     6. 分析每本书下载情况，缺失章节补全等
+
+notes:
+    1. os.sys(command) 将输出屏显，在Pycharm中Settings > Editor > File Encodings将编码切换至GBK可解决中文显示乱码；
+       file = os.popen(command)，通过file.read()读取输出内容时，才会开始执行命令
 """
 
 from RunSpiders.utils import *
@@ -668,7 +672,7 @@ if __name__ == "__main__":
 
     # 指定网站爬虫
     s = WebFictionSpider(output=output, sub_spider_list=[SubSpider2])
-    s.download(book='老婆爱上我')
+    s.download_books(['异界生活助理神', '全知全能者'])
 
 # if __name__ == "__main__":
 #     """
