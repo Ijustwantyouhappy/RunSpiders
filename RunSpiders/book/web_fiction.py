@@ -46,7 +46,9 @@ class WebFictionSpider:
         if sub_spider_list is None:
             self.spiders_list = [
                 SubSpider1(simultaneous_downloads),
-                SubSpider2(simultaneous_downloads)
+                # SubSpider2(simultaneous_downloads),
+                # SubSpider3(simultaneous_downloads)
+                SubSpider7(simultaneous_downloads)
             ]  # todo 检验网站是否可访问
         else:
             self.spiders_list = [spider(simultaneous_downloads) for spider in sub_spider_list]
@@ -661,18 +663,156 @@ class SubSpider3:
         return recipe
 
 
+class SubSpider4:
+    def __init__(self, simultaneous_downloads=30):
+        self.url = 'https://www.biduo.cc/'
+        self.name = '笔趣阁'
+        self.template = "novel_template4.recipe"
+        self.simultaneous_downloads = simultaneous_downloads
+        self.cover_spider = CoverSpider()
+
+
+class SubSpider5:
+    def __init__(self, simultaneous_downloads=30):
+        self.url = 'http://www.ibqg5200.com/'
+        self.name = '笔趣阁5200'
+        self.template = "novel_template5.recipe"
+        self.simultaneous_downloads = simultaneous_downloads
+        self.cover_spider = CoverSpider()
+
+
+class SubSpider6:
+    def __init__(self, simultaneous_downloads=30):
+        self.url = 'http://www.gdbzkz.com/'
+        self.name = '鬼吹灯'
+        self.template = "novel_template6.recipe"
+        self.simultaneous_downloads = simultaneous_downloads
+        self.cover_spider = CoverSpider()
+
+
+class SubSpider7:
+    def __init__(self, simultaneous_downloads=30):
+        self.url = 'https://www.37zw.net/'
+        self.name = '三七中文'
+        self.template = "novel_template7.recipe"
+        self.simultaneous_downloads = simultaneous_downloads
+        self.cover_spider = CoverSpider()
+
+    def search(self, book=None, author=None):
+        """
+        该网站参数：
+            - type 搜索类型
+                * author: 按作者搜索
+                * articlename: 按书名搜索
+            - s 关键词
+        该网页的查询结果只会有一页
+        :param book:
+        :param author:
+        :return: [(book, author, index_url, img_url), ...]
+        """
+        # search
+        if book is not None:
+            url = '{}s/so.php?type=articlename&s={}'.format(self.url, book)
+        elif author is not None:
+            url = '{}s/so.php?type=author&s={}'.format(self.url, author)
+        else:
+            print("author and book can't be `None` in the same time")
+            return []
+        flag, req = request_url(url)
+        if flag:
+            cont = req.content
+            soup = BeautifulSoup(cont, "lxml")
+            books_list = soup.find('div', {'class': 'novellist'}).find_all('li')
+            print('find {} book(s)'.format(len(books_list)))
+            if len(books_list) == 0:
+                return []
+        else:
+            print("request search_url failed")
+            return []
+
+        # parse
+        def _parse_details(soup):
+            # image_url
+            img_url = ''
+            # book, author, index_url
+            try:
+                book, author = soup.text.strip().split('/')
+                index_url = urljoin(self.url, soup.a['href'])
+                # print(book, author, url)
+            except:
+                return None
+
+            return [book, author, index_url, img_url]
+
+        #
+        details_list = []
+        for soup in books_list:
+            tmp = _parse_details(soup)
+            if tmp is not None:
+                book0, author0, _, img_url = tmp
+                if book is not None and book != book0:
+                    continue
+                if author is not None and author != author0:
+                    continue
+                # search cover image's url
+                img_url = self.cover_spider.search(book0, author0)
+                if img_url is not '':
+                    tmp[-1] = img_url
+                details_list.append(tmp)
+        print('after parsing and filtering, {} book(s) left'.format(len(details_list)))
+
+        return details_list
+
+    def gen_recipe(self, book, author, index_url, cover_url, folder="recipes"):
+        """
+
+        :param book:
+        :param author:
+        :param index_url: 索引页地址，不能为空
+        :param cover_url: 可以为空，不能成功下载封面图片
+        :param folder:
+        :return: recipe文件路径
+        """
+        # check if recipe exists
+        file_name = book + '_' + author + '.recipe'  # 书名_作者.recipe
+        recipe = os.path.join(folder, file_name)
+        if os.path.exists(recipe):
+            print("{}  already exists in folder {}".format(file_name, folder))
+            return
+        else:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+
+        # fill template
+        details_dict = {
+            'title': book,
+            'cover_url': cover_url,
+            'index_url': index_url,
+            'simultaneous_downloads': self.simultaneous_downloads
+        }
+        template = _ENV.get_template(self.template)
+        cont = template.render(**details_dict)
+
+        # save
+        with open(recipe, 'w', encoding="utf-8") as file:
+            file.write(cont)
+
+        return recipe
+
+
 if __name__ == "__main__":
     output = "ebooks"
 
-    s = WebFictionSpider(output=output)
+    # s = WebFictionSpider(output=output)
     # s.download(book="秘巫之主")
     # s.download(author="虾写")
     # s.download(author='傲无常', exclude_books=['国产英雄'])
     # s.download_books(['诡案追凶', '日出亚里斯'])
+    # s.download_books(['天降我才必有用'])
 
     # 指定网站爬虫
-    s = WebFictionSpider(output=output, sub_spider_list=[SubSpider2])
-    s.download_books(['异界生活助理神', '全知全能者'])
+    s = WebFictionSpider(output=output, sub_spider_list=[SubSpider7])
+    s.download_books(['医道官途'])
 
 # if __name__ == "__main__":
 #     """
