@@ -28,10 +28,10 @@ class PornHub:
     """
     designed for PornHub （需要翻墙）
     """
-    def __init__(self, output='movies/', timeout=10, retry=3, sleep_interval=3):
+    def __init__(self, output='movies/', mp4_switch=False, timeout=10, retry=3, sleep_interval=3):
         self.hls_downloader = M3U8Spider(output=output)
         self.mp4_downloader = Downloader(output=output)
-        self.mp4_switch = False  # 目前通过MP4下载地址下载视频速度太过缓慢，不开启该方式
+        self.mp4_switch = mp4_switch  # 目前通过MP4下载地址下载视频速度太过缓慢，不开启该方式
 
         self.timeout = timeout
         self.retry = retry
@@ -283,6 +283,149 @@ class PornHub:
 
         return fail_list
 
+    def _parse_anyone_url(self, url=None, category=None, name=None):
+        if url is not None:
+            res = re.findall('/(users|pornstar|model)/(.*?)/', url + '/')  # todo 可能还会有其他账户类型
+            if len(res) == 0:
+                print("[fail] can't parse url: {}".format(url))
+                return None, None, None
+            category, name = res[0]
+        videos_url = 'https://www.pornhub.com/{}/{}/videos'.format(category, name)
+        return category, name, videos_url
+
+    def _fetch_model_videos_urls(self, url=None, name=None):
+        """
+        目前发现共有upload（也即free）和paid两部分，paid中并不都是付费的，所以也有爬取的价值。
+            paid的视频是通过load more的按键加载，是增量的形式，通过ajax爬取；
+            而upload的则是通过page按钮翻页，也有可能仅有一页所以没有page按钮。
+        :param url:
+        :param name:
+        :return:
+        """
+        _, _, videos_url = self._parse_anyone_url(url=url, category='model', name=name)
+        if videos_url is None:
+            return
+        print("model's videos_url: {}".format(videos_url))
+        play_url_list = []
+
+        # part1: paid
+        paid_url = videos_url + '/paid'
+        s = requests.Session()
+        try:
+            req = s.get(paid_url, timeout=self.timeout)
+            videos = BeautifulSoup(req.content, 'lxml') \
+                .find('div', attrs={'class': 'videoUList'}) \
+                .find_all('div', attrs={'class': 'thumbnail-info-wrapper clearfix'})
+        except:
+            print("[fail] request paid videos failed")
+            videos = []
+        else:
+            start_num = len(videos)
+            if start_num > 0:
+                print("paid page: 1. videos: {}".format(start_num))
+                # load more
+                page = 2
+                while True:
+                    try:
+                        page_url = '{}/ajax?o=best&page={}'.format(paid_url, page)
+                        req = s.get(page_url, timeout=self.timeout)
+                        time.sleep(self.sleep_interval)  # todo might be unnecessary
+                        new_videos = BeautifulSoup(req.content, 'lxml')\
+                            .find_all('div', attrs={'class': 'thumbnail-info-wrapper clearfix'})
+                    except:
+                        print("[fail] request paid videos page {} failed".format(page))
+                        break
+                    if len(new_videos) == 0:
+                        break
+                    else:
+                        print("paid page: {}. videos: {}".format(page, len(new_videos)))
+                        videos += new_videos
+                        page += 1
+        # filter
+        for video in videos:
+            play_url = urljoin('https://www.pornhub.com/', video.find('a')['href'])
+            price = video.find('span', attrs={'class': 'price'})
+            if price is None:
+                play_url_list.append(play_url)
+        print("paid vedios: {}, without a price: {}".format(len(videos), len(play_url_list)))
+
+        # part2: free
+        free_url = videos_url + '/upload'
+        try:
+            req = s.get(free_url, timeout=self.timeout)
+            soup = BeautifulSoup(req.content, 'lxml')
+            videos = soup.find('div', attrs={'class': 'videoUList'})\
+                .find_all('div', attrs={'class': 'thumbnail-info-wrapper clearfix'})
+        except:
+            print("[fail] request free videos failed")
+            videos = []
+        else:
+            more_pages = soup.find('div', attrs={'class': 'pagination3'})
+            if more_pages:  # 有page按钮，说明有更多page
+                start_num = len(videos)
+                if start_num > 0:
+                    print("free page: 1. videos: {}".format(start_num))
+                    # more pages
+                    page = 2
+                    while True:
+                        try:
+                            page_url = '{}?page={}'.format(free_url, page)
+                            req = s.get(page_url, timeout=self.timeout)
+                            time.sleep(self.sleep_interval)  # todo might be unnecessary
+                            new_videos = BeautifulSoup(req.content, 'lxml')\
+                                .find('div', attrs={'class': 'videoUList'}) \
+                                .find_all('div', attrs={'class': 'thumbnail-info-wrapper clearfix'})
+                        except:
+                            print("[fail] request free videos page {} failed".format(page))
+                            break
+                        if len(new_videos) == 0:
+                            break
+                        else:
+                            print("free page: {}. videos: {}".format(page, len(new_videos)))
+                            videos += new_videos
+                            page += 1
+        free_videos_url_list = [urljoin('https://www.pornhub.com/', video.find('a')['href']) for video in videos]
+        print("free videos: {}".format(len(free_videos_url_list)))
+
+        play_url_list += free_videos_url_list
+        play_url_list = list(set(play_url_list))
+        print("total videos: {}".format(len(play_url_list)))
+        return play_url_list
+
+    def download_model_videos(self, url=None, name=None):
+        """
+        [unrecommended] 建议使用函数download_anyone_videos
+        :param url:
+        :param name:
+        :return:
+        """
+        play_url_list = self._fetch_model_videos_urls(url, name)
+        fail_list = self.download_movies(play_url_list)
+        return fail_list
+
+    def download_users_videos(self, url=None, name=None):  # todo
+        _, _, videos_url = self._parse_anyone_url(url=url, category='users', name=name)
+        if videos_url is None:
+            return
+
+    def download_pornstar_videos(self, url=None, name=None):  # todo
+        _, _, videos_url = self._parse_anyone_url(url=url, category='pornstar', name=name)
+        if videos_url is None:
+            return
+
+    def download_anyone_videos(self, url):
+        # todo 待完善
+        category, name, videos_url = self._parse_anyone_url(url)
+        if category == 'users':
+            fail_list = self.download_users_videos(videos_url)
+        elif category == 'model':
+            fail_list = self.download_model_videos(videos_url)
+        elif category == 'pornstar':
+            fail_list = self.download_pornstar_videos(videos_url)
+        else:
+            return []
+        return fail_list
+
 
 if __name__ == "__main__":
     spider = PornHub("F:/movies")
@@ -294,5 +437,11 @@ if __name__ == "__main__":
     # playlists = []
     # fail_list = spider.download_playlists(playlists)
     # print(fail_list)
+
+    # users/model/pornhub
+    # url = ''
+    # fail_list = spider.download_anyone_videos(url)
+    # print(fail_list)
+
 
 
