@@ -47,6 +47,7 @@ class Downloader:
         self.process = int(per)
 
     def download(self, download_link, file_name, suffix='mp4'):
+        print('video_title: {}'.format(file_name))
         try:
             file_name += '_' + str(randint(0, 1000000)) + '.' + suffix
             file_path = os.path.join(self.output_folder, file_name)
