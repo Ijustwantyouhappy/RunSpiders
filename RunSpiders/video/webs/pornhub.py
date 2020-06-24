@@ -428,7 +428,8 @@ class PornHub:
 
 
 if __name__ == "__main__":
-    spider = PornHub("F:/movies")
+    # spider = PornHub("F:/movies")
+    spider = PornHub("F:/movies", mp4_switch=True)
 
     # play_url_list = []
     # fail_list = spider.download_movies(play_url_list)

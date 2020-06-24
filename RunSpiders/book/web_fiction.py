@@ -16,6 +16,7 @@ todo
     5. 分卷 volume 卷名
     6. 分析每本书下载情况，缺失章节补全等
     7. 增加fail_list
+    8. send to kindle by email
 
 notes:
     1. os.sys(command) 将输出屏显，在Pycharm中Settings > Editor > File Encodings将编码切换至GBK可解决中文显示乱码；
@@ -49,7 +50,7 @@ class WebFictionSpider:
                 SubSpider1(simultaneous_downloads),
                 # SubSpider2(simultaneous_downloads),
                 # SubSpider3(simultaneous_downloads)
-                SubSpider7(simultaneous_downloads),
+                # SubSpider7(simultaneous_downloads),
                 SubSpider9(simultaneous_downloads)
             ]  # todo 检验网站是否可访问
         else:
@@ -923,14 +924,12 @@ if __name__ == "__main__":
     output = "ebooks"
 
     s = WebFictionSpider(output=output)
-    # s.download(book="秘巫之主")
-    # s.download(author="虾写")
+    s.download(book="秘巫之主")
     # s.download(author='傲无常', exclude_books=['国产英雄'])
     # s.download_books(['诡案追凶', '日出亚里斯'])
     # s.download_books(['不爽剧情毁灭者'])
     # s.download_books(['我真没想重生啊', '天降我才必有用', '变成血族是什么体验'])
     # '怪兽圈养计划', '副本公敌', '我的主神游戏'
-    # s.download_books(['我真没想重生啊', '天降我才必有用'])
 
     # # 指定网站爬虫
     # s = WebFictionSpider(output=output, sub_spider_list=[SubSpider7], simultaneous_downloads=30)

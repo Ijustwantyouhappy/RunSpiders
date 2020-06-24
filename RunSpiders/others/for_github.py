@@ -31,7 +31,13 @@ def get_popularity_info(project_github_url):
     soup = BeautifulSoup(cont, 'lxml')
     #
     try:
-        introduction = str(soup.find('div', attrs={'class', 'f4'}))
+        introduction = str(soup.find('p', attrs={'class', 'f4 mb-3'}))
+        #
+        link_obj = soup.find("div", attrs={"class": "mt-3 d-flex flex-items-center"})
+        if link_obj is None:
+            link = ''
+        else:
+            link = str(link_obj)
         watch = re.search('(\d+) users* (are|is) watching this repository', cont).groups()[0]
         star = re.search('(\d+) users starred this repository', cont).groups()[0]
         fork = re.search('(\d+) users forked this repository', cont).groups()[0]
@@ -46,7 +52,8 @@ def get_popularity_info(project_github_url):
         'watch': watch,
         'star': star,
         'fork': fork,
-        'introduction': introduction
+        'introduction': introduction,
+        'link': link
     }
     template = _ENV.get_template('github_popularity_template1.html')
     cont = template.render(**details_dict)
