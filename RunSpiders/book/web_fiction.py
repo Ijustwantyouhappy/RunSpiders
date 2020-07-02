@@ -9,6 +9,10 @@ references:
     1. [API documentation for recipes](https://manual.calibre-ebook.com/news_recipe.html#calibre.web.feeds.news.BasicNewsRecipe)
     2. [ebook-convert](https://manual.calibre-ebook.com/generated/en/ebook-convert.html)
 
+[deprecated]
+该模块的作用旨在爬取网络小说生成mobi文件后导入kindle，以便无广告离线阅读。但是目前已发现更方便更小白的方法：
+爱阅书香等app，从github上找别人配置好的书源导入，即可更好地满足需求。
+
 todo
     1. ebook-convert 在python console和Run中运行时输出信息会乱码，只有在命令行调用时才能正常显示
     2. ebook-convert 爬虫太慢，考虑自写，寻找生成mobi格式的工具
